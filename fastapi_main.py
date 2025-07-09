@@ -16,7 +16,7 @@ class FormData(BaseModel):
 
 @app.post("/submit")
 def submit_form(data: FormData):
-    # Convert Pydantic models to dicts for fill_form
+    # Convert Pydantic models to model dumps for fill_form
     fill_form(
         reporter=data.reporter.model_dump(),
         vehicle=data.vehicle.model_dump(),

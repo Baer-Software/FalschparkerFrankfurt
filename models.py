@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import Literal
 
 class Reporter(BaseModel):
-    salutation: Literal["Herr", "Frau"]
+    salutation: Literal["Herr", "Frau", "Mit geschlechtsneutraler Anrede"]
     last_name: str
     first_name: str
     postal_code: str
