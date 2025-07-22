@@ -78,11 +78,40 @@ def fill_form(reporter, vehicle, incident):
         blocked_option = wait.until(EC.presence_of_element_located((By.XPATH, "//label[contains(text(), 'Nein')]")))
         blocked_option.click()
         next()
+
         fill_by_label('Tatort - Straße und Hausnummer, eventuell Konkretisierung', incident['location_description'])
         date_input = wait.until(EC.presence_of_element_located((By.XPATH, "//input[@title='Datumseingabe im Format TT.MM.JJJJ']")))
         date_input.send_keys(incident['date'])
         fill_by_label('Beginn Tatzeit', incident['start_time'])
         fill_by_label('Ende Tatzeit', incident['end_time'])
+
+        # Witnesses (optional)
+        witnesses = incident.get('witnesses', [])
+        for witness in witnesses:
+            # Click "Eintrag hinzufügen" button
+            add_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//span[contains(text(), 'Eintrag hinzufügen')]]")))
+            add_btn.click()
+            # Wait for modal
+            wait.until(EC.visibility_of_element_located((By.XPATH, "//h2[contains(text(), 'Angaben zu weiteren Zeugen bearbeiten')]")))
+            # Fill modal fields
+            def fill_witness_by_label(label, value):
+                label_name = wait.until(EC.presence_of_element_located((By.XPATH, f"//div[contains(@class, 'modal')]//label[contains(text(), '{label}')]")))
+                input_name = driver.find_element(By.ID, label_name.get_attribute("for"))
+                input_name.clear()
+                input_name.send_keys(value)
+            fill_witness_by_label('Anrede', witness['salutation'])
+            fill_witness_by_label('Name', witness['last_name'])
+            fill_witness_by_label('Vorname', witness['first_name'])
+            fill_witness_by_label('PLZ', witness['postal_code'])
+            fill_witness_by_label('Ort', witness['city'])
+            fill_witness_by_label('Strasse', witness['street'])
+            fill_witness_by_label('Hausnummer', witness['house_number'])
+            fill_witness_by_label('Hausnummerzusatz', witness['additional_info'])
+            fill_witness_by_label('E-Mail', witness['email'])
+            fill_witness_by_label('Telefonnummer', witness['phone_number'])
+            # Save/close modal (assuming a button with text 'Speichern' or similar)
+            save_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//span[contains(text(), 'Speichern')]]")))
+            save_btn.click()
         time.sleep(30)
     finally:
         driver.quit()

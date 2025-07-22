@@ -1,6 +1,19 @@
 from pydantic import BaseModel
 from typing import Literal
 
+
+class Witness(BaseModel):
+    salutation: Literal["Herr", "Frau", "Mit geschlechtsneutraler Anrede"]
+    last_name: str
+    first_name: str
+    postal_code: str
+    city: str
+    street: str
+    house_number: str
+    additional_info: str
+    email: str
+    phone_number: str
+
 class Reporter(BaseModel):
     salutation: Literal["Herr", "Frau", "Mit geschlechtsneutraler Anrede"]
     last_name: str
@@ -26,3 +39,4 @@ class Incident(BaseModel):
     date: str
     start_time: str
     end_time: str
+    witnesses: list[Witness] = []
