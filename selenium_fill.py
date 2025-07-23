@@ -5,6 +5,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 import time
+import tempfile
+import os
 
 def fill_form(reporter, vehicle, incident):
     chrome_options = webdriver.ChromeOptions()
@@ -24,8 +26,12 @@ def fill_form(reporter, vehicle, incident):
         driver.get("https://portal-civ.ekom21.de/civ.public/start.html?oe=00.00.PA.FFOrdA&mode=cc&cc_key=AnzeigeOwi")
         wait = WebDriverWait(driver, 10)
 
-        def fill_by_label(label, input_value):
-            label_name = wait.until(EC.presence_of_element_located((By.XPATH, "//label[contains(text(), '" + label + "')]")))
+        def fill_by_label(label, input_value, filter_xpath=None):
+            if filter_xpath:
+                parent = wait.until(EC.presence_of_element_located((By.XPATH, filter_xpath)))
+                label_name = parent.find_element(By.XPATH, ".//label[contains(text(), '" + label + "')]")
+            else:
+                label_name = wait.until(EC.presence_of_element_located((By.XPATH, "//label[contains(text(), '" + label + "')]")))
             input_name = driver.find_element(By.ID, label_name.get_attribute("for"))
             input_name.send_keys(input_value)
 
@@ -51,7 +57,7 @@ def fill_form(reporter, vehicle, incident):
         fill_by_label('Postleitzahl', reporter['postal_code'])
         fill_by_label('Ort', reporter['city'])
         fill_by_label('Straße/Postfach', reporter['street'])
-        fill_by_label('Hausnr.', reporter['house_number'])
+        fill_by_label('Nr.', reporter['house_number'])
         fill_by_label('Zusatz', reporter['additional_info'])
         fill_by_label('E-Mail-Adresse', reporter['email'])
         fill_by_label('E-Mail-Adresse bestätigen', reporter['email'])
@@ -68,50 +74,78 @@ def fill_form(reporter, vehicle, incident):
         custom_select(vehicle['vehicle_type'])
         custom_select(vehicle['manufacturer'])
 
-        report_option = wait.until(EC.presence_of_element_located((By.XPATH, "//label[contains(text(), 'Feuerwehrzufahrt')]/..")))
+        report_option = wait.until(EC.presence_of_element_located((By.XPATH, f"//label[contains(text(), '{incident['type']}')]/..")))
         report_option.click()
         next()
 
         # Incident group
-        location_option = wait.until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'Das Fahrzeug parkte vor oder in einer amtlich gekennzeichneten Feuerwehrzufahrt.')]")))
-        location_option.click()
-        blocked_option = wait.until(EC.presence_of_element_located((By.XPATH, "//label[contains(text(), 'Nein')]")))
-        blocked_option.click()
+        duration_option = wait.until(EC.presence_of_element_located((By.XPATH, f"//label[contains(text(), '{incident['duration']}')]")))
+        duration_option.click()
+        location_type_option = wait.until(EC.presence_of_element_located((By.XPATH, f"//span[contains(text(), '{incident['location_type']}')]")))
+        location_type_option.click()
+        obstructed_option = wait.until(EC.presence_of_element_located((By.XPATH, f"//label[contains(text(), '{incident['obstructed']}')]")))
+        obstructed_option.click()
+        if incident['obstructed'] == 'Ja':
+            fill_by_label('Bitte beschreiben Sie die Behinderung.', incident['obstruction_description'])
         next()
 
         fill_by_label('Tatort - Straße und Hausnummer, eventuell Konkretisierung', incident['location_description'])
-        date_input = wait.until(EC.presence_of_element_located((By.XPATH, "//input[@title='Datumseingabe im Format TT.MM.JJJJ']")))
-        date_input.send_keys(incident['date'])
-        fill_by_label('Beginn Tatzeit', incident['start_time'])
-        fill_by_label('Ende Tatzeit', incident['end_time'])
+        fill_by_label('Tattag (Datum)', incident['date'])
+        # Click somewhere else on the page to remove focus from the date field
+        # driver.find_element(By.TAG_NAME, "body").click()
+        fill_by_label('Tatzeit (Zeitpunkt)', incident['start_time'])
+        # driver.find_element(By.TAG_NAME, "body").click()
+        # fill_by_label('Ende Tatzeit', incident['end_time'])
 
         # Witnesses (optional)
         witnesses = incident.get('witnesses', [])
+        witness_xpath = "//h2[contains(text(), 'Angaben zu weiteren Zeugen bearbeiten')]/.."
         for witness in witnesses:
             # Click "Eintrag hinzufügen" button
             add_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//span[contains(text(), 'Eintrag hinzufügen')]]")))
             add_btn.click()
             # Wait for modal
             wait.until(EC.visibility_of_element_located((By.XPATH, "//h2[contains(text(), 'Angaben zu weiteren Zeugen bearbeiten')]")))
-            # Fill modal fields
-            def fill_witness_by_label(label, value):
-                label_name = wait.until(EC.presence_of_element_located((By.XPATH, f"//div[contains(@class, 'modal')]//label[contains(text(), '{label}')]")))
-                input_name = driver.find_element(By.ID, label_name.get_attribute("for"))
-                input_name.clear()
-                input_name.send_keys(value)
-            fill_witness_by_label('Anrede', witness['salutation'])
-            fill_witness_by_label('Name', witness['last_name'])
-            fill_witness_by_label('Vorname', witness['first_name'])
-            fill_witness_by_label('PLZ', witness['postal_code'])
-            fill_witness_by_label('Ort', witness['city'])
-            fill_witness_by_label('Strasse', witness['street'])
-            fill_witness_by_label('Hausnummer', witness['house_number'])
-            fill_witness_by_label('Hausnummerzusatz', witness['additional_info'])
-            fill_witness_by_label('E-Mail', witness['email'])
-            fill_witness_by_label('Telefonnummer', witness['phone_number'])
-            # Save/close modal (assuming a button with text 'Speichern' or similar)
-            save_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//span[contains(text(), 'Speichern')]]")))
+            custom_select(witness['salutation'])
+            fill_by_label('Name', witness['last_name'], filter_xpath=witness_xpath)
+            fill_by_label('Vorname', witness['first_name'], filter_xpath=witness_xpath)
+            fill_by_label('PLZ', witness['postal_code'], filter_xpath=witness_xpath)
+            fill_by_label('Ort', witness['city'], filter_xpath=witness_xpath)
+            fill_by_label('Strasse', witness['street'], filter_xpath=witness_xpath)
+            fill_by_label('Hausnummer', witness['house_number'], filter_xpath=witness_xpath)
+            fill_by_label('Hausnummerzusatz', witness['additional_info'], filter_xpath=witness_xpath)
+            fill_by_label('E-Mail', witness['email'], filter_xpath=witness_xpath)
+            fill_by_label('Telefonnummer', witness['phone_number'], filter_xpath=witness_xpath)
+            save_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[.//span[contains(text(), 'Übernehmen')]]")))
             save_btn.click()
+
+        # Upload images for proof_overview and proof_car
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as overview_file:
+            overview_file.write(incident['proof_overview'])
+            overview_path = overview_file.name
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as car_file:
+            car_file.write(incident['proof_car'])
+            car_path = car_file.name
+
+        try:
+            # Find the hidden file input elements by class and upload the images
+            file_inputs = driver.find_elements(By.CSS_SELECTOR, "input.gwt-FileUpload[type='file']")
+            file_inputs[0].send_keys(overview_path)
+            upload_overview_btn = driver.find_element(By.CSS_SELECTOR, 'button[aria-label="Beweis-Übersichtsfoto (erforderlich) Hochladen"]')
+            upload_overview_btn.click()
+
+            file_inputs[0].send_keys(car_path)
+            upload_car_btn = driver.find_element(By.CSS_SELECTOR, 'button[aria-label="Beweis-Fahrzeugfoto (erforderlich) Hochladen"]')
+            upload_car_btn.click()
+        finally:
+            os.remove(overview_path)
+            os.remove(car_path)
+
+        next()
+
+        obstructed_option = wait.until(EC.presence_of_element_located((By.XPATH, "//label[contains(text(), 'Ich versichere die Richtigkeit und Vollständigkeit meiner gemachten Angaben. Mir ist bewusst, dass ich als Zeuge oder Zeugin zur wahrheitsgemäßen Angabe verpflichtet bin (§ 57 Strafprozessordnung in Verbindung mit § 46 Ordnungswidrigkeitengesetz) und auf Nachfrage zur Sache, gegebenenfalls auch vor Gericht, aussagen muss (§ 161 a Strafprozessordnung in Verbindung mit § 46 Ordnungswidrigkeitengesetz).')]")))
+        obstructed_option.click()
+
         time.sleep(30)
     finally:
         driver.quit()
