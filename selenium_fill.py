@@ -128,19 +128,19 @@ def fill_form(reporter, vehicle, incident):
             car_path = car_file.name
 
         try:
-            # Find the hidden file input elements by class and upload the images
-            file_inputs = driver.find_elements(By.CSS_SELECTOR, "input.gwt-FileUpload[type='file']")
-            file_inputs[0].send_keys(overview_path)
+            # Hier gibt es noch ein Problem. Das file-Feld taucht erst nach dem Klick auf den Upload-Button auf.
             upload_overview_btn = driver.find_element(By.CSS_SELECTOR, 'button[aria-label="Beweis-Übersichtsfoto (erforderlich) Hochladen"]')
             upload_overview_btn.click()
-
-            file_inputs[0].send_keys(car_path)
+            file_inputs = driver.find_elements(By.CSS_SELECTOR, "input.gwt-FileUpload[type='file']")
+            file_inputs[0].send_keys(overview_path)
             upload_car_btn = driver.find_element(By.CSS_SELECTOR, 'button[aria-label="Beweis-Fahrzeugfoto (erforderlich) Hochladen"]')
             upload_car_btn.click()
+            file_inputs[0].send_keys(car_path)
         finally:
             os.remove(overview_path)
             os.remove(car_path)
 
+        time.sleep(30)
         next()
 
         obstructed_option = wait.until(EC.presence_of_element_located((By.XPATH, "//label[contains(text(), 'Ich versichere die Richtigkeit und Vollständigkeit meiner gemachten Angaben. Mir ist bewusst, dass ich als Zeuge oder Zeugin zur wahrheitsgemäßen Angabe verpflichtet bin (§ 57 Strafprozessordnung in Verbindung mit § 46 Ordnungswidrigkeitengesetz) und auf Nachfrage zur Sache, gegebenenfalls auch vor Gericht, aussagen muss (§ 161 a Strafprozessordnung in Verbindung mit § 46 Ordnungswidrigkeitengesetz).')]")))
