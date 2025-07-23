@@ -69,6 +69,15 @@ async def fill_form(reporter, vehicle, incident):
         await fill_by_label('Tattag (Datum)', incident['date'])
         await fill_by_label('Tatzeit (Zeitpunkt)', incident['start_time'])
         # await fill_by_label('Ende Tatzeit', incident['end_time']) # Uncomment if needed
+        await page.locator('body').click()
+        tattag_label = page.locator(f"label:text-is('Tattag (Datum)')")
+        tattag_element_id = await tattag_label.get_attribute("for")
+        await page.locator(f"#{tattag_element_id}").click()
+        await page.locator('body').click()
+        tattag_label = page.locator(f"label:text-is('Tattag (Datum)')")
+        tattag_element_id = await tattag_label.get_attribute("for")
+        await page.locator(f"#{tattag_element_id}").click()
+        await page.locator('.datePickerDayIsValue').click()
 
         # Witnesses (optional)
         witnesses = incident.get('witnesses', [])
@@ -101,20 +110,27 @@ async def fill_form(reporter, vehicle, incident):
         await file_input.wait_for(state="attached")
         await file_input.set_input_files(overview_path)
 
-        await asyncio.sleep(10)
+        await asyncio.sleep(5)
 
         await page.locator('button[aria-label="Beweis-Fahrzeugfoto (erforderlich) Hochladen"]').click()
         car_file_input = page.locator('input[type="file"]').last
         await car_file_input.wait_for(state="attached")
         await car_file_input.set_input_files(car_path)
 
-        inputs = page.locator('input[type="text"].gwt-TextBox')
-        await inputs.nth(0).wait_for(state="visible")
-        await inputs.nth(1).wait_for(state="visible")
+        labels = page.locator('label:text-is("Dateiname")')
+        await labels.nth(0).wait_for(state="visible")
+        await labels.nth(1).wait_for(state="visible")
 
         await next_btn()
 
         await page.locator("label:text-is('Ich versichere die Richtigkeit und Vollständigkeit meiner gemachten Angaben. Mir ist bewusst, dass ich als Zeuge oder Zeugin zur wahrheitsgemäßen Angabe verpflichtet bin (§ 57 Strafprozessordnung in Verbindung mit § 46 Ordnungswidrigkeitengesetz) und auf Nachfrage zur Sache, gegebenenfalls auch vor Gericht, aussagen muss (§ 161 a Strafprozessordnung in Verbindung mit § 46 Ordnungswidrigkeitengesetz).')").click()
 
-        await asyncio.sleep(30)
+        await asyncio.sleep(5)
+
+        await next_btn()
+
+        await page.locator("button:has(span:text('Absenden'))").click()
+
+        await asyncio.sleep(120)
+
         await browser.close()
