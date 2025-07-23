@@ -29,7 +29,7 @@ async def submit_form(
     incident_dict["proof_overview"] = await proof_overview.read()
     incident_dict["proof_car"] = await proof_car.read()
     incident_obj = Incident.model_validate(incident_dict)
-    fill_form(
+    await fill_form(
         reporter=reporter_obj.model_dump(),
         vehicle=vehicle_obj.model_dump(),
         incident=incident_obj.model_dump()
