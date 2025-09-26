@@ -125,11 +125,11 @@ async def fill_form(reporter, vehicle, incident):
 
         await page.locator("label:text-is('Ich versichere die Richtigkeit und Vollständigkeit meiner gemachten Angaben. Mir ist bewusst, dass ich als Zeuge oder Zeugin zur wahrheitsgemäßen Angabe verpflichtet bin (§ 57 Strafprozessordnung in Verbindung mit § 46 Ordnungswidrigkeitengesetz) und auf Nachfrage zur Sache, gegebenenfalls auch vor Gericht, aussagen muss (§ 161 a Strafprozessordnung in Verbindung mit § 46 Ordnungswidrigkeitengesetz).')").click()
 
-        await asyncio.sleep(5)
+        await asyncio.sleep(2)
 
         await next_btn()
 
-        await page.locator("button:has(span:text('Absenden'))").click()
+        #await page.locator("button:has(span:text('Absenden'))").click()
 
         await asyncio.sleep(120)
 
